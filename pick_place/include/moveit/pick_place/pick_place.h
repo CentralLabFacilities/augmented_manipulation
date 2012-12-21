@@ -63,10 +63,10 @@ public:
   }
   
   /** \brief Plan the sequence of motions that perform a pickup action */
-  ManipulationPlanPtr planPick(const planning_scene::PlanningScenePtr &planning_scene, const moveit_msgs::PickupGoal &goal, double timeout) const;
+  ManipulationPlanPtr planPick(const planning_scene::PlanningScenePtr &planning_scene, const moveit_msgs::PickupGoal &goal) const;
 
   /** \brief Plan the sequence of motions that perform a placement action */
-  ManipulationPlanPtr planPlace(const planning_scene::PlanningScenePtr &planning_scene, const moveit_msgs::PlaceGoal &goal, double timeout) const;
+  ManipulationPlanPtr planPlace(const planning_scene::PlanningScenePtr &planning_scene, const moveit_msgs::PlaceGoal &goal) const;
 
 private:
   
@@ -74,7 +74,9 @@ private:
   constraint_sampler_manager_loader::ConstraintSamplerManagerLoaderPtr constraint_sampler_manager_loader_;
 };
 
+typedef boost::shared_ptr<PickPlace> PickPlacePtr;
+typedef boost::shared_ptr<const PickPlace> PickPlaceConstPtr;
+
 }
 
 #endif
-
