@@ -53,13 +53,13 @@ PlanStage::PlanStage(const planning_scene::PlanningSceneConstPtr &scene,
 
 bool PlanStage::evaluate(unsigned int thread_id, const ManipulationPlanPtr &plan) const
 {
-  moveit_msgs::GetMotionPlan::Request req;
-  moveit_msgs::GetMotionPlan::Response res;
-  req.motion_plan_request.group_name = plan->planning_group_;
-  req.motion_plan_request.num_planning_attempts = 1;
-  req.motion_plan_request.allowed_planning_time = ros::Duration((plan->timeout_ - ros::WallTime::now()).toSec());
+  moveit_msgs::MotionPlanRequest req;
+  moveit_msgs::MotionPlanResponse res;
+  req.group_name = plan->planning_group_;
+  req.num_planning_attempts = 1;
+  req.allowed_planning_time = ros::Duration((plan->timeout_ - ros::WallTime::now()).toSec());
 
-  req.motion_plan_request.goal_constraints.resize(1, kinematic_constraints::constructGoalConstraints(plan->approach_state_->getJointStateGroup(plan->planning_group_)));
+  req.goal_constraints.resize(1, kinematic_constraints::constructGoalConstraints(plan->approach_state_->getJointStateGroup(plan->planning_group_)));
   
   if (planning_pipeline_->generatePlan(planning_scene_, req, res) && res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
   {
