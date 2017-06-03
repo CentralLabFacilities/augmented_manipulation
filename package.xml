@@ -1,5 +1,5 @@
 <package>
-  <name>moveit_ros_manipulation</name>
+  <name>moveit_ros_augmented_manipulation</name>
   <version>0.9.6</version>
   <description>Components of MoveIt used for manipulation</description>
 
