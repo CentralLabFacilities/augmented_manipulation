@@ -1,4 +1,4 @@
-set(MOVEIT_LIB_NAME moveit_pick_place_planner)
+set(MOVEIT_LIB_NAME moveit_augmented_pick_place_planner)
 
 add_library(${MOVEIT_LIB_NAME}
   src/pick_place_params.cpp

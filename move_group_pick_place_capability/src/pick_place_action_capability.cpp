@@ -41,12 +41,12 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-move_group::MoveGroupPickPlaceAction::MoveGroupPickPlaceAction()
-  : MoveGroupCapability("PickPlaceAction"), pickup_state_(IDLE)
+move_group::MoveGroupAugmentedPickPlaceAction::MoveGroupAugmentedPickPlaceAction()
+  : MoveGroupCapability("AugmentedPickPlaceAction"), pickup_state_(IDLE)
 {
 }
 
-void move_group::MoveGroupPickPlaceAction::initialize()
+void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
 {
   pick_place_.reset(new pick_place::PickPlace(context_->planning_pipeline_));
   pick_place_->displayComputedMotionPlans(true);
@@ -56,39 +56,39 @@ void move_group::MoveGroupPickPlaceAction::initialize()
 
   // start the pickup action server
   pickup_action_server_.reset(new actionlib::SimpleActionServer<moveit_msgs::PickupAction>(
-      root_node_handle_, PICKUP_ACTION, boost::bind(&MoveGroupPickPlaceAction::executePickupCallback, this, _1),
+      root_node_handle_, PICKUP_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePickupCallback, this, _1),
       false));
-  pickup_action_server_->registerPreemptCallback(boost::bind(&MoveGroupPickPlaceAction::preemptPickupCallback, this));
+  pickup_action_server_->registerPreemptCallback(boost::bind(&MoveGroupAugmentedPickPlaceAction::preemptPickupCallback, this));
   pickup_action_server_->start();
 
   // start the place action server
   place_action_server_.reset(new actionlib::SimpleActionServer<moveit_msgs::PlaceAction>(
-      root_node_handle_, PLACE_ACTION, boost::bind(&MoveGroupPickPlaceAction::executePlaceCallback, this, _1), false));
-  place_action_server_->registerPreemptCallback(boost::bind(&MoveGroupPickPlaceAction::preemptPlaceCallback, this));
+      root_node_handle_, PLACE_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePlaceCallback, this, _1), false));
+  place_action_server_->registerPreemptCallback(boost::bind(&MoveGroupAugmentedPickPlaceAction::preemptPlaceCallback, this));
   place_action_server_->start();
 }
 
-void move_group::MoveGroupPickPlaceAction::startPickupExecutionCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::startPickupExecutionCallback()
 {
   setPickupState(MONITOR);
 }
 
-void move_group::MoveGroupPickPlaceAction::startPickupLookCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::startPickupLookCallback()
 {
   setPickupState(LOOK);
 }
 
-void move_group::MoveGroupPickPlaceAction::startPlaceExecutionCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::startPlaceExecutionCallback()
 {
   setPlaceState(MONITOR);
 }
 
-void move_group::MoveGroupPickPlaceAction::startPlaceLookCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::startPlaceLookCallback()
 {
   setPlaceState(LOOK);
 }
 
-void move_group::MoveGroupPickPlaceAction::executePickupCallback_PlanOnly(const moveit_msgs::PickupGoalConstPtr& goal,
+void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback_PlanOnly(const moveit_msgs::PickupGoalConstPtr& goal,
                                                                           moveit_msgs::PickupResult& action_res)
 {
   pick_place::PickPlanPtr plan;
@@ -127,7 +127,7 @@ void move_group::MoveGroupPickPlaceAction::executePickupCallback_PlanOnly(const 
   }
 }
 
-void move_group::MoveGroupPickPlaceAction::executePlaceCallback_PlanOnly(const moveit_msgs::PlaceGoalConstPtr& goal,
+void move_group::MoveGroupAugmentedPickPlaceAction::executePlaceCallback_PlanOnly(const moveit_msgs::PlaceGoalConstPtr& goal,
                                                                          moveit_msgs::PlaceResult& action_res)
 {
   pick_place::PlacePlanPtr plan;
@@ -166,7 +166,7 @@ void move_group::MoveGroupPickPlaceAction::executePlaceCallback_PlanOnly(const m
   }
 }
 
-bool move_group::MoveGroupPickPlaceAction::planUsingPickPlace_Pickup(const moveit_msgs::PickupGoal& goal,
+bool move_group::MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Pickup(const moveit_msgs::PickupGoal& goal,
                                                                      moveit_msgs::PickupResult* action_res,
                                                                      plan_execution::ExecutableMotionPlan& plan)
 {
@@ -208,7 +208,7 @@ bool move_group::MoveGroupPickPlaceAction::planUsingPickPlace_Pickup(const movei
   return plan.error_code_.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
 }
 
-bool move_group::MoveGroupPickPlaceAction::planUsingPickPlace_Place(const moveit_msgs::PlaceGoal& goal,
+bool move_group::MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Place(const moveit_msgs::PlaceGoal& goal,
                                                                     moveit_msgs::PlaceResult* action_res,
                                                                     plan_execution::ExecutableMotionPlan& plan)
 {
@@ -250,7 +250,7 @@ bool move_group::MoveGroupPickPlaceAction::planUsingPickPlace_Place(const moveit
   return plan.error_code_.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
 }
 
-void move_group::MoveGroupPickPlaceAction::executePickupCallback_PlanAndExecute(
+void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback_PlanAndExecute(
     const moveit_msgs::PickupGoalConstPtr& goal, moveit_msgs::PickupResult& action_res)
 {
   plan_execution::PlanExecution::Options opt;
@@ -258,17 +258,17 @@ void move_group::MoveGroupPickPlaceAction::executePickupCallback_PlanAndExecute(
   opt.replan_ = goal->planning_options.replan;
   opt.replan_attempts_ = goal->planning_options.replan_attempts;
   opt.replan_delay_ = goal->planning_options.replan_delay;
-  opt.before_execution_callback_ = boost::bind(&MoveGroupPickPlaceAction::startPickupExecutionCallback, this);
+  opt.before_execution_callback_ = boost::bind(&MoveGroupAugmentedPickPlaceAction::startPickupExecutionCallback, this);
 
   opt.plan_callback_ =
-      boost::bind(&MoveGroupPickPlaceAction::planUsingPickPlace_Pickup, this, boost::cref(*goal), &action_res, _1);
+      boost::bind(&MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Pickup, this, boost::cref(*goal), &action_res, _1);
   if (goal->planning_options.look_around && context_->plan_with_sensing_)
   {
     opt.plan_callback_ = boost::bind(&plan_execution::PlanWithSensing::computePlan, context_->plan_with_sensing_.get(),
                                      _1, opt.plan_callback_, goal->planning_options.look_around_attempts,
                                      goal->planning_options.max_safe_execution_cost);
     context_->plan_with_sensing_->setBeforeLookCallback(
-        boost::bind(&MoveGroupPickPlaceAction::startPickupLookCallback, this));
+        boost::bind(&MoveGroupAugmentedPickPlaceAction::startPickupLookCallback, this));
   }
 
   plan_execution::ExecutableMotionPlan plan;
@@ -281,7 +281,7 @@ void move_group::MoveGroupPickPlaceAction::executePickupCallback_PlanAndExecute(
   action_res.error_code = plan.error_code_;
 }
 
-void move_group::MoveGroupPickPlaceAction::executePlaceCallback_PlanAndExecute(
+void move_group::MoveGroupAugmentedPickPlaceAction::executePlaceCallback_PlanAndExecute(
     const moveit_msgs::PlaceGoalConstPtr& goal, moveit_msgs::PlaceResult& action_res)
 {
   plan_execution::PlanExecution::Options opt;
@@ -289,16 +289,16 @@ void move_group::MoveGroupPickPlaceAction::executePlaceCallback_PlanAndExecute(
   opt.replan_ = goal->planning_options.replan;
   opt.replan_attempts_ = goal->planning_options.replan_attempts;
   opt.replan_delay_ = goal->planning_options.replan_delay;
-  opt.before_execution_callback_ = boost::bind(&MoveGroupPickPlaceAction::startPlaceExecutionCallback, this);
+  opt.before_execution_callback_ = boost::bind(&MoveGroupAugmentedPickPlaceAction::startPlaceExecutionCallback, this);
   opt.plan_callback_ =
-      boost::bind(&MoveGroupPickPlaceAction::planUsingPickPlace_Place, this, boost::cref(*goal), &action_res, _1);
+      boost::bind(&MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Place, this, boost::cref(*goal), &action_res, _1);
   if (goal->planning_options.look_around && context_->plan_with_sensing_)
   {
     opt.plan_callback_ = boost::bind(&plan_execution::PlanWithSensing::computePlan, context_->plan_with_sensing_.get(),
                                      _1, opt.plan_callback_, goal->planning_options.look_around_attempts,
                                      goal->planning_options.max_safe_execution_cost);
     context_->plan_with_sensing_->setBeforeLookCallback(
-        boost::bind(&MoveGroupPickPlaceAction::startPlaceLookCallback, this));
+        boost::bind(&MoveGroupAugmentedPickPlaceAction::startPlaceLookCallback, this));
   }
 
   plan_execution::ExecutableMotionPlan plan;
@@ -311,7 +311,7 @@ void move_group::MoveGroupPickPlaceAction::executePlaceCallback_PlanAndExecute(
   action_res.error_code = plan.error_code_;
 }
 
-void move_group::MoveGroupPickPlaceAction::executePickupCallback(const moveit_msgs::PickupGoalConstPtr& input_goal)
+void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const moveit_msgs::PickupGoalConstPtr& input_goal)
 {
   setPickupState(PLANNING);
 
@@ -358,7 +358,7 @@ void move_group::MoveGroupPickPlaceAction::executePickupCallback(const moveit_ms
   setPickupState(IDLE);
 }
 
-void move_group::MoveGroupPickPlaceAction::executePlaceCallback(const moveit_msgs::PlaceGoalConstPtr& goal)
+void move_group::MoveGroupAugmentedPickPlaceAction::executePlaceCallback(const moveit_msgs::PlaceGoalConstPtr& goal)
 {
   setPlaceState(PLANNING);
 
@@ -395,29 +395,29 @@ void move_group::MoveGroupPickPlaceAction::executePlaceCallback(const moveit_msg
   setPlaceState(IDLE);
 }
 
-void move_group::MoveGroupPickPlaceAction::preemptPickupCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::preemptPickupCallback()
 {
 }
 
-void move_group::MoveGroupPickPlaceAction::preemptPlaceCallback()
+void move_group::MoveGroupAugmentedPickPlaceAction::preemptPlaceCallback()
 {
 }
 
-void move_group::MoveGroupPickPlaceAction::setPickupState(MoveGroupState state)
+void move_group::MoveGroupAugmentedPickPlaceAction::setPickupState(MoveGroupState state)
 {
   pickup_state_ = state;
   pickup_feedback_.state = stateToStr(state);
   pickup_action_server_->publishFeedback(pickup_feedback_);
 }
 
-void move_group::MoveGroupPickPlaceAction::setPlaceState(MoveGroupState state)
+void move_group::MoveGroupAugmentedPickPlaceAction::setPlaceState(MoveGroupState state)
 {
   place_state_ = state;
   place_feedback_.state = stateToStr(state);
   place_action_server_->publishFeedback(place_feedback_);
 }
 
-void move_group::MoveGroupPickPlaceAction::fillGrasps(moveit_msgs::PickupGoal& goal)
+void move_group::MoveGroupAugmentedPickPlaceAction::fillGrasps(moveit_msgs::PickupGoal& goal)
 {
   planning_scene_monitor::LockedPlanningSceneRO lscene(context_->planning_scene_monitor_);
 
@@ -461,4 +461,4 @@ void move_group::MoveGroupPickPlaceAction::fillGrasps(moveit_msgs::PickupGoal& g
 }
 
 #include <class_loader/class_loader.h>
-CLASS_LOADER_REGISTER_CLASS(move_group::MoveGroupPickPlaceAction, move_group::MoveGroupCapability)
+CLASS_LOADER_REGISTER_CLASS(move_group::MoveGroupAugmentedPickPlaceAction, move_group::MoveGroupCapability)

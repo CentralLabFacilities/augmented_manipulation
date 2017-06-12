@@ -1,0 +1,9 @@
+<library path="libmoveit_move_group_augmented_pick_place_capability">
+
+  <class name="move_group/MoveGroupAugmentedPickPlaceAction" type="move_group::MoveGroupAugmentedPickPlaceAction" base_class_type="move_group::MoveGroupCapability">
+    <description>
+      Provide augmented pick and place capability to MoveGroup
+    </description>
+  </class>
+
+</library>

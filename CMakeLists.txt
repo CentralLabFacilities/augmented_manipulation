@@ -34,7 +34,7 @@ catkin_package(
     pick_place/include
     move_group_pick_place_capability/include
   LIBRARIES
-    moveit_pick_place_planner
+    moveit_augmented_pick_place_planner
   CATKIN_DEPENDS
     moveit_core
     moveit_ros_planning
@@ -57,5 +57,5 @@ add_subdirectory(pick_place)
 add_subdirectory(move_group_pick_place_capability)
 
 install(FILES
-  pick_place_capability_plugin_description.xml
+        augmented_pick_place_capability_plugin_description.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

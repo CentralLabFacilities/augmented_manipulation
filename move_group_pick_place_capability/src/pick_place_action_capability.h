@@ -47,10 +47,10 @@
 
 namespace move_group
 {
-class MoveGroupPickPlaceAction : public MoveGroupCapability
+class MoveGroupAugmentedPickPlaceAction : public MoveGroupCapability
 {
 public:
-  MoveGroupPickPlaceAction();
+    MoveGroupAugmentedPickPlaceAction();
   virtual void initialize();
 
 private:
