@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   pluginlib
   actionlib
+  augmented_manipulation_msgs
 )
 find_package(Eigen3 REQUIRED)
 

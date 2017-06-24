@@ -38,7 +38,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>rosconsole</run_depend>
   <run_depend>tf</run_depend>
-  <run_depend>pluginlib</run_depend>
+  <run_depend>pluginlib</run_depend>  
 
   <export>
     <moveit_ros_move_group plugin="${prefix}/augmented_pick_place_capability_plugin_description.xml"/>

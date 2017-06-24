@@ -42,6 +42,7 @@
 #include <moveit/pick_place/pick_place.h>
 #include <moveit_msgs/PickupAction.h>
 #include <moveit_msgs/PlaceAction.h>
+#include <augmented_manipulation_msgs/AugmentedPickupAction.h>
 
 #include <memory>
 
@@ -54,7 +55,7 @@ public:
   virtual void initialize();
 
 private:
-  void executePickupCallback(const moveit_msgs::PickupGoalConstPtr& goal);
+  void executePickupCallback(const augmented_manipulation_msgs::AugmentedPickupGoalConstPtr& augmented_goal);
   void executePlaceCallback(const moveit_msgs::PlaceGoalConstPtr& goal);
 
   void executePickupCallback_PlanOnly(const moveit_msgs::PickupGoalConstPtr& goal,
@@ -87,8 +88,8 @@ private:
 
   pick_place::PickPlacePtr pick_place_;
 
-  std::unique_ptr<actionlib::SimpleActionServer<moveit_msgs::PickupAction> > pickup_action_server_;
-  moveit_msgs::PickupFeedback pickup_feedback_;
+  std::unique_ptr<actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction> > pickup_action_server_;
+    augmented_manipulation_msgs::AugmentedPickupFeedback pickup_feedback_;
 
   std::unique_ptr<actionlib::SimpleActionServer<moveit_msgs::PlaceAction> > place_action_server_;
   moveit_msgs::PlaceFeedback place_feedback_;

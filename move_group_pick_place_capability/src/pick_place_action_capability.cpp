@@ -55,7 +55,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
     pick_place_->displayProcessedGrasps(true);
 
   // start the pickup action server
-  pickup_action_server_.reset(new actionlib::SimpleActionServer<moveit_msgs::PickupAction>(
+  pickup_action_server_.reset(new actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction>(
       root_node_handle_, PICKUP_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePickupCallback, this, _1),
       false));
   pickup_action_server_->registerPreemptCallback(boost::bind(&MoveGroupAugmentedPickPlaceAction::preemptPickupCallback, this));
@@ -89,7 +89,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::startPlaceLookCallback()
 }
 
 void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback_PlanOnly(const moveit_msgs::PickupGoalConstPtr& goal,
-                                                                          moveit_msgs::PickupResult& action_res)
+                                                                                   moveit_msgs::PickupResult& action_res)
 {
   pick_place::PickPlanPtr plan;
   try
@@ -167,7 +167,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePlaceCallback_PlanOnl
 }
 
 bool move_group::MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Pickup(const moveit_msgs::PickupGoal& goal,
-                                                                     moveit_msgs::PickupResult* action_res,
+                                                                              moveit_msgs::PickupResult* action_res,
                                                                      plan_execution::ExecutableMotionPlan& plan)
 {
   setPickupState(PLANNING);
@@ -251,7 +251,7 @@ bool move_group::MoveGroupAugmentedPickPlaceAction::planUsingPickPlace_Place(con
 }
 
 void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback_PlanAndExecute(
-    const moveit_msgs::PickupGoalConstPtr& goal, moveit_msgs::PickupResult& action_res)
+    const moveit_msgs::PickupGoalConstPtr& goal,   moveit_msgs::PickupResult& action_res)
 {
   plan_execution::PlanExecution::Options opt;
 
@@ -311,7 +311,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePlaceCallback_PlanAnd
   action_res.error_code = plan.error_code_;
 }
 
-void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const moveit_msgs::PickupGoalConstPtr& input_goal)
+void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const augmented_manipulation_msgs::AugmentedPickupGoalConstPtr&  augmented_goal)
 {
   setPickupState(PLANNING);
 
@@ -320,14 +320,14 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   context_->planning_scene_monitor_->updateFrameTransforms();
 
   moveit_msgs::PickupGoalConstPtr goal;
-  if (input_goal->possible_grasps.empty())
-  {
-    moveit_msgs::PickupGoal* copy(new moveit_msgs::PickupGoal(*input_goal));
-    goal.reset(copy);
-    fillGrasps(*copy);
-  }
-  else
-    goal = input_goal;
+  moveit_msgs::PickupGoal* copy;
+
+  // transfer options to PickupGoal
+  copy->allowed_planning_time = augmented_goal->allowed_planning_time;
+  copy->planning_options = augmented_goal->planning_options;
+
+  goal.reset(copy);
+  fillGrasps(*copy);
 
   moveit_msgs::PickupResult action_res;
 
@@ -345,14 +345,20 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   bool planned_trajectory_empty = action_res.trajectory_stages.empty();
   std::string response =
       getActionResultString(action_res.error_code, planned_trajectory_empty, goal->planning_options.plan_only);
-  if (action_res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
-    pickup_action_server_->setSucceeded(action_res, response);
+
+  // fill AugmentedPickupResult
+  augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;
+  augmented_action_res.error_code = action_res.error_code;
+  augmented_action_res.grasp = action_res.grasp;
+
+  if (augmented_action_res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+    pickup_action_server_->setSucceeded(augmented_action_res, response);
   else
   {
-    if (action_res.error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
-      pickup_action_server_->setPreempted(action_res, response);
+    if (augmented_action_res.error_code.val == moveit_msgs::MoveItErrorCodes::PREEMPTED)
+      pickup_action_server_->setPreempted(augmented_action_res, response);
     else
-      pickup_action_server_->setAborted(action_res, response);
+      pickup_action_server_->setAborted(augmented_action_res, response);
   }
 
   setPickupState(IDLE);
