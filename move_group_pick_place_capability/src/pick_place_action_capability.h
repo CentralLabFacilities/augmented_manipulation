@@ -37,7 +37,9 @@
 #ifndef MOVEIT_MOVE_GROUP_PICK_PLACE_ACTION_CAPABILITY_
 #define MOVEIT_MOVE_GROUP_PICK_PLACE_ACTION_CAPABILITY_
 
+#include <grasping_msgs/Object.h>
 #include <moveit/move_group/move_group_capability.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <actionlib/server/simple_action_server.h>
 #include <moveit/pick_place/pick_place.h>
 #include <moveit_msgs/PickupAction.h>
@@ -100,6 +102,8 @@ private:
   MoveGroupState place_state_;
 
   ros::ServiceClient grasp_planning_service_;
+
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
 };
 }
 

@@ -319,6 +319,53 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   context_->planning_scene_monitor_->waitForCurrentRobotState(ros::Time::now());
   context_->planning_scene_monitor_->updateFrameTransforms();
 
+  // get objects from planning scene and search for the given name
+  grasping_msgs::Object object;
+
+  std::map< std::string, moveit_msgs::CollisionObject > known_objects = planning_scene_interface_.getObjects();
+  bool found = false;
+
+  for( const auto& object_pair : known_objects)
+  {
+    ROS_INFO_NAMED("manipulation", "Checking object %s", object_pair.first.c_str());
+
+    if(object_pair.first == augmented_goal->object_name)
+    {
+      ROS_INFO_NAMED("manipulation", "Found object %s!", augmented_goal->object_name.c_str());
+
+      // fill object with name, primitves and poses
+      object.name = object_pair.second.id;
+
+      object.primitives.resize(object_pair.second.primitives.size());
+      for (std::size_t i = 0; i < object_pair.second.primitives.size(); ++i)
+        object.primitives[i] = object_pair.second.primitives[i];
+
+      object.primitive_poses.resize(object_pair.second.primitive_poses.size());
+      for (std::size_t i = 0; i < object_pair.second.primitive_poses.size(); ++i)
+        object.primitive_poses[i] = object_pair.second.primitive_poses[i];
+
+      found = true;
+      break;
+    }
+  }
+
+  // throw error and abort goal if object is not in planning scene
+  if ( not found )
+  {
+      ROS_ERROR_NAMED("manipulation", "Object %s not found in current PlanningScene!", augmented_goal->object_name.c_str());
+
+      // fill AugmentedPickupResult
+      augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;
+      augmented_action_res.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_OBJECT_NAME;
+
+      // abort goal
+      pickup_action_server_->setAborted(augmented_action_res);
+      setPickupState(IDLE);
+
+      return;
+  }
+
+  // create PickupGoal based on AugmentedPickupGoal and generated grasps
   moveit_msgs::PickupGoalConstPtr goal;
   moveit_msgs::PickupGoal* copy;
 

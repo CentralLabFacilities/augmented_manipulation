@@ -12,7 +12,7 @@ add_library(${MOVEIT_LIB_NAME}
   )
 set_target_properties(${MOVEIT_LIB_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION})
 
-target_link_libraries(${MOVEIT_LIB_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(${MOVEIT_LIB_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} moveit_planning_scene_interface)
 
 install(TARGETS ${MOVEIT_LIB_NAME} LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
