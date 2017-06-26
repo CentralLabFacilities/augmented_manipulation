@@ -327,11 +327,11 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
 
   for( const auto& object_pair : known_objects)
   {
-    ROS_INFO_NAMED("manipulation", "Checking object %s", object_pair.first.c_str());
+    ROS_DEBUG_NAMED("manipulation", "Checking object %s", object_pair.first.c_str());
 
     if(object_pair.first == augmented_goal->object_name)
     {
-      ROS_INFO_NAMED("manipulation", "Found object %s!", augmented_goal->object_name.c_str());
+      ROS_INFO_NAMED("manipulation", "Found %s!", augmented_goal->object_name.c_str());
 
       // fill object with name, primitves and poses
       object.name = object_pair.second.id;
@@ -367,14 +367,14 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
 
   // create PickupGoal based on AugmentedPickupGoal and generated grasps
   moveit_msgs::PickupGoalConstPtr goal;
-  moveit_msgs::PickupGoal* copy;
+  moveit_msgs::PickupGoal copy;
 
   // transfer options to PickupGoal
-  copy->allowed_planning_time = augmented_goal->allowed_planning_time;
-  copy->planning_options = augmented_goal->planning_options;
+  copy.allowed_planning_time = augmented_goal->allowed_planning_time;
+  copy.planning_options = augmented_goal->planning_options;
 
-  goal.reset(copy);
-  fillGrasps(*copy);
+  goal.reset(new moveit_msgs::PickupGoal(copy));
+  fillGrasps(copy);
 
   moveit_msgs::PickupResult action_res;
 
@@ -384,12 +384,14 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
       ROS_WARN_NAMED("manipulation", "This instance of MoveGroup is not allowed to execute trajectories but the pick "
                                      "goal request has plan_only set to false. Only a motion plan will be computed "
                                      "anyway.");
-    executePickupCallback_PlanOnly(goal, action_res);
+
+      executePickupCallback_PlanOnly(goal, action_res);
   }
   else
     executePickupCallback_PlanAndExecute(goal, action_res);
 
-  bool planned_trajectory_empty = action_res.trajectory_stages.empty();
+
+    bool planned_trajectory_empty = action_res.trajectory_stages.empty();
   std::string response =
       getActionResultString(action_res.error_code, planned_trajectory_empty, goal->planning_options.plan_only);
 
@@ -398,7 +400,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   augmented_action_res.error_code = action_res.error_code;
   augmented_action_res.grasp = action_res.grasp;
 
-  if (augmented_action_res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+    if (augmented_action_res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
     pickup_action_server_->setSucceeded(augmented_action_res, response);
   else
   {
