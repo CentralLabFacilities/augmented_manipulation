@@ -54,6 +54,9 @@ void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
   if (context_->debug_)
     pick_place_->displayProcessedGrasps(true);
 
+  // register action client for grasp manager
+  grasp_manager_client_.reset(new actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction>(GRASP_MANAGER_ACTION, true));
+
   // start the pickup action server
   pickup_action_server_.reset(new actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction>(
       root_node_handle_, PICKUP_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePickupCallback, this, _1),
@@ -319,6 +322,22 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   context_->planning_scene_monitor_->waitForCurrentRobotState(ros::Time::now());
   context_->planning_scene_monitor_->updateFrameTransforms();
 
+
+    // throw error and abort goal if object is not in planning scene
+  if ( augmented_goal->grasp_config_sets.empty() )
+  {
+      ROS_ERROR_NAMED("manipulation", "A GraspConfigSet has to be given!");
+
+      // fill AugmentedPickupResult
+      augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;
+      augmented_action_res.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_GROUP_NAME;
+
+      // abort goal
+      pickup_action_server_->setAborted(augmented_action_res);
+      setPickupState(IDLE);
+
+      return;
+  }
   // get objects from planning scene and search for the given name
   grasping_msgs::Object object;
 
@@ -369,31 +388,69 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
   moveit_msgs::PickupGoalConstPtr goal;
   moveit_msgs::PickupGoal copy;
 
-  // transfer options to PickupGoal
+  // transfer options relevant for all groups to PickupGoal
   copy.allowed_planning_time = augmented_goal->allowed_planning_time;
   copy.planning_options = augmented_goal->planning_options;
 
-  goal.reset(new moveit_msgs::PickupGoal(copy));
-  fillGrasps(copy);
-
   moveit_msgs::PickupResult action_res;
+  std::string response;
+  std::vector<moveit_msgs::Grasp> generated_grasps;
 
-  if (goal->planning_options.plan_only || !context_->allow_trajectory_execution_)
+
+  // try planning for every group / config given
+  for( const auto& grasp_config_set : augmented_goal->grasp_config_sets)
   {
-    if (!goal->planning_options.plan_only)
-      ROS_WARN_NAMED("manipulation", "This instance of MoveGroup is not allowed to execute trajectories but the pick "
-                                     "goal request has plan_only set to false. Only a motion plan will be computed "
-                                     "anyway.");
+      ROS_DEBUG_NAMED("manipulation", "Generating grasps for group %s with config %s",
+                      grasp_config_set.group_name.c_str(), grasp_config_set.config_name.c_str());
 
-      executePickupCallback_PlanOnly(goal, action_res);
+      // build & send goal for generating grasps
+      grasping_msgs::GenerateGraspsGoal grasp_goal;
+
+      grasp_goal.object = object;
+      grasp_goal.config_name = grasp_config_set.config_name;
+
+      grasp_manager_client_.get()->sendGoal(grasp_goal);
+      grasp_manager_client_.get()->waitForResult();
+
+      // get grasps and store them in the goal
+      grasping_msgs::GenerateGraspsResultConstPtr grasp_result = grasp_manager_client_.get()->getResult();
+
+      // store generated grasps in vector
+      generated_grasps.insert(generated_grasps.end(), grasp_result->grasps.begin(), grasp_result->grasps.end());
+
+      // pass generated grasps down to goal
+      for (std::size_t i = 0; i < grasp_result->grasps.size(); ++i)
+          copy.possible_grasps[i] = grasp_result->grasps[i];
+
+      // get end effector name from param server
+      nh_.getParam("/grasp_gen_config/" + grasp_config_set.config_name + "/eef_name", copy.end_effector);
+
+      // set groupname according to config
+      copy.group_name = grasp_config_set.group_name;
+
+      goal.reset(new moveit_msgs::PickupGoal(copy));
+
+      // trigger goal planning & execution
+      if (goal->planning_options.plan_only || !context_->allow_trajectory_execution_)
+      {
+          if (!goal->planning_options.plan_only)
+              ROS_WARN_NAMED("manipulation", "This instance of MoveGroup is not allowed to execute trajectories but the pick "
+                      "goal request has plan_only set to false. Only a motion plan will be computed "
+                      "anyway.");
+
+          executePickupCallback_PlanOnly(goal, action_res);
+      }
+      else
+          executePickupCallback_PlanAndExecute(goal, action_res);
+
+
+      bool planned_trajectory_empty = action_res.trajectory_stages.empty();
+      response = getActionResultString(action_res.error_code, planned_trajectory_empty, goal->planning_options.plan_only);
+
+      // if get a success, we're done, other groups are ignored
+      if (action_res.error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS)
+          break;
   }
-  else
-    executePickupCallback_PlanAndExecute(goal, action_res);
-
-
-    bool planned_trajectory_empty = action_res.trajectory_stages.empty();
-  std::string response =
-      getActionResultString(action_res.error_code, planned_trajectory_empty, goal->planning_options.plan_only);
 
   // fill AugmentedPickupResult
   augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;

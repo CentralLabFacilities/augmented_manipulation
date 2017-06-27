@@ -38,9 +38,11 @@
 #define MOVEIT_MOVE_GROUP_PICK_PLACE_ACTION_CAPABILITY_
 
 #include <grasping_msgs/Object.h>
+#include <grasping_msgs/GenerateGraspsAction.h>
 #include <moveit/move_group/move_group_capability.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <actionlib/server/simple_action_server.h>
+#include <actionlib/client/simple_action_client.h>
 #include <moveit/pick_place/pick_place.h>
 #include <moveit_msgs/PickupAction.h>
 #include <moveit_msgs/PlaceAction.h>
@@ -88,6 +90,8 @@ private:
 
   void fillGrasps(moveit_msgs::PickupGoal& goal);
 
+  ros::NodeHandle nh_;
+
   pick_place::PickPlacePtr pick_place_;
 
   std::unique_ptr<actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction> > pickup_action_server_;
@@ -95,6 +99,8 @@ private:
 
   std::unique_ptr<actionlib::SimpleActionServer<moveit_msgs::PlaceAction> > place_action_server_;
   moveit_msgs::PlaceFeedback place_feedback_;
+
+  std::unique_ptr<actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction> > grasp_manager_client_;
 
   std::unique_ptr<moveit_msgs::AttachedCollisionObject> diff_attached_object_;
 
@@ -104,6 +110,8 @@ private:
   ros::ServiceClient grasp_planning_service_;
 
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
+
+  const std::string GRASP_MANAGER_ACTION = "grasp_manager";    // name of 'grasp_manager' action
 };
 }
 
