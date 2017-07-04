@@ -55,7 +55,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
     pick_place_->displayProcessedGrasps(true);
 
   // register action client for grasp manager
-  grasp_manager_client_.reset(new actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction>(GRASP_MANAGER_ACTION, true));
+  grasp_provider_client_.reset(new actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction>(GRASP_PROVIDER_ACTION, true));
 
   // start the pickup action server
   pickup_action_server_.reset(new actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction>(
@@ -399,32 +399,87 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
 
 
   // try planning for every group / config given
-  for( const auto& grasp_config_set : augmented_goal->grasp_config_sets)
+  for( unsigned int i=0; i < augmented_goal->grasp_config_sets.size(); ++i)
   {
-      ROS_DEBUG_NAMED("manipulation", "Generating grasps for group %s with config %s",
-                      grasp_config_set.group_name.c_str(), grasp_config_set.config_name.c_str());
+    augmented_manipulation_msgs::GraspConfigSet grasp_config_set = augmented_goal->grasp_config_sets[i];
+    ROS_DEBUG_NAMED("manipulation", "Generating grasps for group %s with config %s",
+                    grasp_config_set.group_name.c_str(), grasp_config_set.config_name.c_str());
 
-      // build & send goal for generating grasps
       grasping_msgs::GenerateGraspsGoal grasp_goal;
 
       grasp_goal.object = object;
       grasp_goal.config_name = grasp_config_set.config_name;
 
-      grasp_manager_client_.get()->sendGoal(grasp_goal);
-      grasp_manager_client_.get()->waitForResult();
+    grasp_provider_client_->sendGoal(grasp_goal);
+    bool grasp_provider_ret = grasp_provider_client_->waitForResult(ros::Duration(augmented_goal->allowed_planning_time/4.0));
+    // handle time out of grasp provider
+    if (!grasp_provider_ret)
+    {
+      // cancel grasp generator
+      grasp_provider_client_->cancelGoal();
 
-      // get grasps and store them in the goal
-      grasping_msgs::GenerateGraspsResultConstPtr grasp_result = grasp_manager_client_.get()->getResult();
+      ROS_WARN_NAMED("manipulation", "Did not get grasps within allowed time of %f (s)", augmented_goal->allowed_planning_time/4.0);
+      // if last config, then abort otherwise continue
+      if (i == augmented_goal->grasp_config_sets.size()-1)
+      {
+        ROS_ERROR_NAMED("manipulation", "Aborting since there is no more config to test");
 
-      // store generated grasps in vector
-      generated_grasps.insert(generated_grasps.end(), grasp_result->grasps.begin(), grasp_result->grasps.end());
+        // fill AugmentedPickupResult
+        augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;
+        augmented_action_res.error_code.val = moveit_msgs::MoveItErrorCodes::TIMED_OUT;
 
-      // pass generated grasps down to goal
-      for (std::size_t i = 0; i < grasp_result->grasps.size(); ++i)
-          copy.possible_grasps[i] = grasp_result->grasps[i];
+        // abort goal
+        pickup_action_server_->setAborted(augmented_action_res);
+        setPickupState(IDLE);
+        return;
+      }
+      else
+      {
+        continue;
+      }
+    }
+    // handle errors of grasp provider
+    actionlib::SimpleClientGoalState state = grasp_provider_client_->getState();
+    if (state != actionlib::SimpleClientGoalState::SUCCEEDED)
+    {
+      ROS_WARN_NAMED("manipulation", "Did not get grasps due to an error in the provider (%s)", state.toString().c_str());
+      // if last config, abort, otherwise continue
+      if (i == augmented_goal->grasp_config_sets.size()-1)
+      {
+        // fill AugmentedPickupResult
+        augmented_manipulation_msgs::AugmentedPickupResult augmented_action_res;
+        augmented_action_res.error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
-      // get end effector name from param server
+        // abort goal
+        pickup_action_server_->setAborted(augmented_action_res);
+        setPickupState(IDLE);
+        return;
+      }
+      else
+      {
+        continue;
+      }
+    }
+
+    // get grasps and store them in the goal
+    grasping_msgs::GenerateGraspsResultConstPtr grasp_result = grasp_provider_client_->getResult();
+
+    // store generated grasps in vector
+    generated_grasps.insert(generated_grasps.end(), grasp_result->grasps.begin(), grasp_result->grasps.end());
+
+    // pass generated grasps down to goal
+    copy.possible_grasps.clear();
+    ROS_DEBUG_STREAM_NAMED("manipulation", "Got " << grasp_result->grasps.size() << " grasps");
+    for (std::size_t i = 0; i < grasp_result->grasps.size(); ++i)
+    {
+        copy.possible_grasps.push_back(grasp_result->grasps[i]);
+    }
+
       nh_.getParam("/grasp_gen_config/" + grasp_config_set.config_name + "/eef_name", copy.end_effector);
+    // get end effector name from param server
+    // TODO: (Guillaume) maybe add a service from within the grasp_provider to avoid this code
+    // requiring to know about the internal choices of the grasp provider. Just a srv that is generic and that can be called /grasp_provider/get_eef_name
+    // another possibility is to modify the grasp response and store the eef_name in addition to the grasp list.
 
     // set groupname according to config
     copy.group_name = grasp_config_set.group_name;

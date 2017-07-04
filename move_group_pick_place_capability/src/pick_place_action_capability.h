@@ -100,7 +100,7 @@ private:
   std::unique_ptr<actionlib::SimpleActionServer<moveit_msgs::PlaceAction> > place_action_server_;
   moveit_msgs::PlaceFeedback place_feedback_;
 
-  std::unique_ptr<actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction> > grasp_manager_client_;
+  std::unique_ptr<actionlib::SimpleActionClient<grasping_msgs::GenerateGraspsAction> > grasp_provider_client_;
 
   std::unique_ptr<moveit_msgs::AttachedCollisionObject> diff_attached_object_;
 
@@ -111,7 +111,7 @@ private:
 
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
 
-  const std::string GRASP_MANAGER_ACTION = "grasp_manager";    // name of 'grasp_manager' action
+  const std::string GRASP_PROVIDER_ACTION = "grasp_provider";    // name of 'grasp_provider' action
 };
 }
 
