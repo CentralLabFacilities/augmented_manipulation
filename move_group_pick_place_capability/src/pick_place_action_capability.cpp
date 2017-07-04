@@ -352,8 +352,9 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
     {
       ROS_INFO_NAMED("manipulation", "Found %s!", augmented_goal->object_name.c_str());
 
-      // fill object with name, primitves and poses
+      // fill object with name, header, primitives and poses
       object.name = object_pair.second.id;
+      object.header = object_pair.second.header;
 
       object.primitives.resize(object_pair.second.primitives.size());
       for (std::size_t i = 0; i < object_pair.second.primitives.size(); ++i)
@@ -425,8 +426,10 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
       // get end effector name from param server
       nh_.getParam("/grasp_gen_config/" + grasp_config_set.config_name + "/eef_name", copy.end_effector);
 
-      // set groupname according to config
-      copy.group_name = grasp_config_set.group_name;
+    // set groupname according to config
+    copy.group_name = grasp_config_set.group_name;
+    // set object name according to object name
+    copy.target_name = object.name;
 
       goal.reset(new moveit_msgs::PickupGoal(copy));
 
