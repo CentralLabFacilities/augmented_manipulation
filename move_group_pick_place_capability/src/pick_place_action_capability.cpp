@@ -37,7 +37,7 @@
 #include "pick_place_action_capability.h"
 #include <moveit/plan_execution/plan_execution.h>
 #include <moveit/plan_execution/plan_with_sensing.h>
-#include <moveit/move_group_pick_place_capability/capability_names.h>
+#include <moveit/move_group_pick_place_capability/augmented_capability_names.h>
 
 #include <eigen_conversions/eigen_msg.h>
 
@@ -59,7 +59,7 @@ void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
 
   // start the pickup action server
   pickup_action_server_.reset(new actionlib::SimpleActionServer<augmented_manipulation_msgs::AugmentedPickupAction>(
-      root_node_handle_, PICKUP_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePickupCallback, this, _1),
+      root_node_handle_, AUGMENTED_PICKUP_ACTION, boost::bind(&MoveGroupAugmentedPickPlaceAction::executePickupCallback, this, _1),
       false));
   pickup_action_server_->registerPreemptCallback(boost::bind(&MoveGroupAugmentedPickPlaceAction::preemptPickupCallback, this));
   pickup_action_server_->start();
