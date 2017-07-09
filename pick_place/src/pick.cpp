@@ -167,6 +167,9 @@ bool PickPlan::plan(const planning_scene::PlanningSceneConstPtr& planning_scene,
   initialize();
   pipeline_.start();
 
+  // all grasps in verbose mode
+  pipeline_.setVerbose(true);
+
   // order the grasps by quality
   std::vector<std::size_t> grasp_order(goal.possible_grasps.size());
   for (std::size_t i = 0; i < goal.possible_grasps.size(); ++i)
