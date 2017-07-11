@@ -101,6 +101,8 @@ bool pick_place::ReachableAndValidPoseFilter::isEndEffectorFree(const Manipulati
   collision_detection::CollisionResult res;
   req.group_name = plan->shared_data_->end_effector_group_->getName();
   planning_scene_->checkCollision(req, res, token_state, *collision_matrix_);
+  if (res.collision)
+      ROS_DEBUG_NAMED("manipulation", "Eef Collision detected");
   return res.collision == false;
 }
 
@@ -145,6 +147,10 @@ bool pick_place::ReachableAndValidPoseFilter::evaluate(const ManipulationPlanPtr
     }
     else
       ROS_ERROR_THROTTLE_NAMED(1, "manipulation", "No sampler was constructed");
+  }
+  else
+  {
+    ROS_DEBUG_NAMED("manipulation", "GOAL in Collision");
   }
   plan->error_code_.val = moveit_msgs::MoveItErrorCodes::GOAL_IN_COLLISION;
   return false;

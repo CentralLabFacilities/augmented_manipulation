@@ -412,14 +412,14 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
     grasp_goal.config_name = grasp_config_set.config_name;
 
     grasp_provider_client_->sendGoal(grasp_goal);
-    bool grasp_provider_ret = grasp_provider_client_->waitForResult(ros::Duration(augmented_goal->allowed_planning_time/4.0));
+    bool grasp_provider_ret = grasp_provider_client_->waitForResult(ros::Duration(augmented_goal->allowed_planning_time/2.0));
     // handle time out of grasp provider
     if (!grasp_provider_ret)
     {
       // cancel grasp generator
       grasp_provider_client_->cancelGoal();
 
-      ROS_WARN_NAMED("manipulation", "Did not get grasps within allowed time of %f (s)", augmented_goal->allowed_planning_time/4.0);
+      ROS_WARN_NAMED("manipulation", "Did not get grasps within allowed time of %f (s)", augmented_goal->allowed_planning_time/2.0);
       // if last config, then abort otherwise continue
       if (i == augmented_goal->grasp_config_sets.size()-1)
       {
@@ -470,7 +470,10 @@ void move_group::MoveGroupAugmentedPickPlaceAction::executePickupCallback(const 
 
     // pass generated grasps down to goal
     copy.possible_grasps.clear();
-    ROS_DEBUG_STREAM_NAMED("manipulation", "Got " << grasp_result->grasps.size() << " grasps");
+    if (grasp_result->grasps.size() == 0)
+        ROS_WARN_STREAM_NAMED("manipulation", "Got No grasp from grasp provider");
+    else
+        ROS_DEBUG_STREAM_NAMED("manipulation", "Got " << grasp_result->grasps.size() << " grasps");
     for (std::size_t i = 0; i < grasp_result->grasps.size(); ++i)
     {
         copy.possible_grasps.push_back(grasp_result->grasps[i]);
