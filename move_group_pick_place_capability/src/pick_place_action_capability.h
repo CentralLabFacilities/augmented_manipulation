@@ -47,6 +47,8 @@
 #include <moveit_msgs/PickupAction.h>
 #include <moveit_msgs/PlaceAction.h>
 #include <augmented_manipulation_msgs/AugmentedPickupAction.h>
+#include <augmented_manipulation_msgs/AugmentedPickupQuery.h>
+#include <std_msgs/Int32.h>
 
 #include <memory>
 
@@ -59,6 +61,7 @@ public:
   virtual void initialize();
 
 private:
+  void queryPickupCallback(const augmented_manipulation_msgs::AugmentedPickupQueryConstPtr& aq);
   void executePickupCallback(const augmented_manipulation_msgs::AugmentedPickupGoalConstPtr& augmented_goal);
   void executePlaceCallback(const moveit_msgs::PlaceGoalConstPtr& goal);
 
@@ -91,6 +94,8 @@ private:
   void fillGrasps(moveit_msgs::PickupGoal& goal);
 
   ros::NodeHandle nh_;
+  ros::Publisher pub_;
+  ros::Subscriber sub_;
 
   pick_place::PickPlacePtr pick_place_;
 
@@ -112,6 +117,8 @@ private:
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
 
   const std::string GRASP_PROVIDER_ACTION = "grasp_provider";    // name of 'grasp_provider' action
+  
+  ros::AsyncSpinner spinner;  // needed for the subscriber to get updates of the planning scene
 };
 }
 
