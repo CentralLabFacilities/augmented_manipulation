@@ -61,9 +61,9 @@ void move_group::MoveGroupAugmentedPickPlaceAction::initialize()
 
   // create a subscriber with a similar goal to the action lib
 
-  std::string topic = std::string(AUGMENTED_PICKUP_ACTION) + std::string("/Query");
+  std::string topic = std::string(AUGMENTED_PICKUP_ACTION) + std::string("/query");
   sub_ = root_node_handle_.subscribe(topic.c_str(), 1, &MoveGroupAugmentedPickPlaceAction::queryPickupCallback, this);
-  topic = std::string(AUGMENTED_PICKUP_ACTION) + std::string("/Response");
+  topic = std::string(AUGMENTED_PICKUP_ACTION) + std::string("/response");
   pub_ = root_node_handle_.advertise<std_msgs::Int32>(topic.c_str(), 1);
 
   // start the pickup action server
